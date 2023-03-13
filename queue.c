@@ -14,34 +14,85 @@
 /* Create an empty queue */
 struct list_head *q_new()
 {
+    struct list_head *queue = malloc(sizeof(struct list_head));
+    if (queue) {
+        INIT_LIST_HEAD(queue);
+        return queue;
+    }
     return NULL;
 }
 
 /* Free all storage used by queue */
-void q_free(struct list_head *l) {}
+void q_free(struct list_head *l)
+{
+    if (l == NULL) {
+        return;
+    }
+    struct list_head *node, *next;
+    list_for_each_safe (node, next, l) {
+        element_t *element = list_entry(node, element_t, list);
+        free(element);
+    }
+    free(l);
+}
+
+/* hi */
+element_t *create_element(char *s)
+{
+    element_t *element = malloc(sizeof(element_t));
+    INIT_LIST_HEAD(&element->list);
+    int len = strlen(s);
+    char *s_copy = malloc(len + 1);
+    strncpy(s_copy, s, len);
+    s_copy[len] = 0;
+    element->value = s_copy;
+
+    return element;
+}
 
 /* Insert an element at head of queue */
 bool q_insert_head(struct list_head *head, char *s)
 {
+    element_t *element = create_element(s);
+    list_add(&element->list, head);
+
+    // printf("e: %p, v: %p\n", element, element->value);
+
     return true;
 }
 
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    element_t *element = create_element(s);
+    list_add_tail(&element->list, head);
+
     return true;
 }
 
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    if (head == head->next) {
+        return NULL;
+    }
+    element_t *elem = list_entry(head->next, element_t, list);
+    list_del(head->next);
+    if (sp != NULL) {
+        strncpy(sp, elem->value, bufsize - 1);
+    }
+    return elem;
 }
 
 /* Remove an element from tail of queue */
 element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    element_t *elem = list_entry(head->prev, element_t, list);
+    list_del(head->prev);
+    if (sp != NULL) {
+        strncpy(sp, elem->value, bufsize - 1);
+    }
+    return elem;
 }
 
 /* Return number of elements in queue */
