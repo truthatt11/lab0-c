@@ -176,16 +176,26 @@ void q_swap(struct list_head *head)
     while (node != NULL && node->next != NULL && node->next != head) {
         struct list_head *node1 = node;
         struct list_head *node2 = node->next;
+        struct list_head *next_node = node->next->next;
 
         /// n <-> n1 <-> n2 <-> nn
         /// n <-> n2 <-> n1 <-> nn
-        node2->prev = node1->prev;
-        node1->next = node2->next;
+        struct list_head *n = node1->prev;
+        struct list_head *nn = node2->next;
+
+        n->next = node2;
+        node2->prev = n;
+
+        nn->prev = node1;
+        node1->next = nn;
 
         node1->prev = node2;
         node2->next = node1;
 
-        node = node->next->next;
+        node = next_node;
+        if (node == head) {
+            break;
+        }
     }
 }
 
