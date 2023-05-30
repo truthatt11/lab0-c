@@ -31,6 +31,7 @@ void q_free(struct list_head *l)
     struct list_head *node, *next;
     list_for_each_safe (node, next, l) {
         element_t *element = list_entry(node, element_t, list);
+        free(element->value);
         free(element);
     }
     free(l);
@@ -137,6 +138,30 @@ bool q_delete_mid(struct list_head *head)
 bool q_delete_dup(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
+    if (head == NULL || head == head->next) {
+        return false;
+    }
+    element_t *now, *next;
+    element_t *dup_now;
+    struct list_head *dup_element = q_new();
+
+    list_for_each_entry_safe (now, next, head, list) {
+        bool is_duplicated = false;
+        list_for_each_entry (dup_now, dup_element, list) {
+            if (strcmp(now->value, dup_now->value) == 0) {
+                is_duplicated = true;
+                break;
+            }
+        }
+
+        if (!is_duplicated) {
+            element_t *new_elem = create_element(now->value);
+            list_add(dup_element, &new_elem->list);
+        } else {
+            list_del(&now->list);
+        }
+    }
+
     return true;
 }
 
@@ -144,19 +169,118 @@ bool q_delete_dup(struct list_head *head)
 void q_swap(struct list_head *head)
 {
     // https://leetcode.com/problems/swap-nodes-in-pairs/
+    if (head == NULL) {
+        return;
+    }
+    struct list_head *node = head->next;
+    while (node != NULL && node->next != NULL && node->next != head) {
+        struct list_head *node1 = node;
+        struct list_head *node2 = node->next;
+
+        /// n <-> n1 <-> n2 <-> nn
+        /// n <-> n2 <-> n1 <-> nn
+        node2->prev = node1->prev;
+        node1->next = node2->next;
+
+        node1->prev = node2;
+        node2->next = node1;
+
+        node = node->next->next;
+    }
 }
 
 /* Reverse elements in queue */
-void q_reverse(struct list_head *head) {}
+void q_reverse(struct list_head *head)
+{
+    if (head == NULL) {
+        return;
+    }
+    struct list_head *node, *node_safe;
+    list_for_each_safe (node, node_safe, head) {
+        struct list_head *temp = node->next;
+        node->next = node->prev;
+        node->prev = temp;
+    }
+
+    struct list_head *temp = head->next;
+    head->next = head->prev;
+    head->prev = temp;
+}
 
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
     // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    if (head == NULL) {
+        return;
+    }
+
+    struct list_head *node, *node_safe;
+    struct list_head *nhead;
+    int i = 0;
+
+    list_for_each_safe (node, node_safe, head) {
+        if (i == 0) {
+            nhead = node->prev;
+        }
+        struct list_head *temp = node->next;
+        node->next = node->prev;
+        node->prev = temp;
+        ++i;
+
+        if (i == k) {
+            node_safe->prev = nhead->next;
+            nhead->next = node;
+            i = 0;
+        }
+    }
 }
 
 /* Sort elements of queue in ascending order */
-void q_sort(struct list_head *head) {}
+void q_sort(struct list_head *head)
+{
+    if (head == NULL || head->next == head) {
+        return;
+    }
+    struct list_head *node_i;
+
+    list_for_each (node_i, head) {
+        // printf("node_i: %p\n", node_i);
+        for (struct list_head *node_j = head->next; node_j != node_i;
+             node_j = node_j->next) {
+            // printf("node_j: %p\n", node_j);
+            element_t *elem1 = list_entry(node_i, element_t, list);
+            element_t *elem2 = list_entry(node_j, element_t, list);
+
+            // printf("elem1: %s, elem2: %s\n", elem1->value, elem2->value);
+            if (strcmp(elem1->value, elem2->value) < 0) {
+                // printf("insert i: %p to j: %p\n", node_i, node_j);
+                // a1 <-> i <-> a2, b1 <-> j <-> b2
+                struct list_head *a1 = node_i->prev;
+                struct list_head *a2 = node_i->next;
+                struct list_head *b1 = node_j->prev;
+
+                a1->next = a2;
+                a2->prev = a1;
+
+                b1->next = node_i;
+                node_i->prev = b1;
+
+                node_j->prev = node_i;
+                node_i->next = node_j;
+
+                // element_t* temp;
+
+                // printf("l = [");
+                // list_for_each_entry(temp, head, list) {
+                //     printf("%s ", temp->value);
+                // }
+                // printf("]\n");
+                break;
+            }
+        }
+    }
+}
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
@@ -170,5 +294,54 @@ int q_descend(struct list_head *head)
 int q_merge(struct list_head *head)
 {
     // https://leetcode.com/problems/merge-k-sorted-lists/
-    return 0;
+    struct list_head *entry_list;
+    queue_contex_t *first_queue = list_entry(head->next, queue_contex_t, chain);
+
+    list_for_each (entry_list, head) {
+        queue_contex_t *entry = list_entry(entry_list, queue_contex_t, chain);
+        element_t *first_queue_now =
+            list_entry(first_queue->q->next, element_t, list);
+        element_t *node, *node_safe;
+
+        if (entry_list == head->next) {
+            continue;
+        }
+
+        list_for_each_entry_safe (node, node_safe, entry->q, list) {
+            bool is_added = false;
+            while (&first_queue_now->list != first_queue->q) {
+                if (strcmp(first_queue_now->value, node->value) > 0) {
+                    // remove now from old queue
+                    node->list.prev->next = node->list.next;
+                    node->list.next->prev = node->list.prev;
+
+                    // add now to new queue
+                    node->list.prev = first_queue_now->list.prev;
+                    node->list.next = &first_queue_now->list;
+
+                    first_queue_now->list.prev->next = &node->list;
+                    first_queue_now->list.prev = &node->list;
+
+                    is_added = true;
+                    break;
+                } else {
+                    first_queue_now = list_entry(first_queue_now->list.next, element_t, list);
+                }
+            }
+            if (!is_added) {
+                // remove now from old queue
+                node->list.prev->next = node->list.next;
+                node->list.next->prev = node->list.prev;
+
+                // add now to new queue
+                node->list.prev = first_queue_now->list.prev;
+                node->list.next = &first_queue_now->list;
+
+                first_queue_now->list.prev->next = &node->list;
+                first_queue_now->list.prev = &node->list;
+            }
+        }
+    }
+
+    return q_size(first_queue->q);
 }
