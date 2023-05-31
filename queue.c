@@ -57,8 +57,6 @@ bool q_insert_head(struct list_head *head, char *s)
     element_t *element = create_element(s);
     list_add(&element->list, head);
 
-    // printf("e: %p, v: %p\n", element, element->value);
-
     return true;
 }
 
@@ -262,25 +260,44 @@ void q_reverseK(struct list_head *head, int k)
         return;
     }
 
-    struct list_head *node, *node_safe;
-    struct list_head *nhead;
-    int i = 0;
-
-    list_for_each_safe (node, node_safe, head) {
-        if (i == 0) {
-            nhead = node->prev;
+    struct list_head *node = head->next;
+    bool is_end = false;
+    while (true) {
+        struct list_head *iter = node;
+        for (int i = 0; i < k; ++i) {
+            if (iter == head) {
+                is_end = true;
+                break;
+            }
+            iter = iter->next;
         }
-        struct list_head *temp = node->next;
-        node->next = node->prev;
-        node->prev = temp;
-        ++i;
-
-        if (i == k) {
-            node_safe->prev = nhead->next;
-            nhead->next = node;
-            i = 0;
+        if (is_end) {
+            break;
         }
+
+        node->prev->next = iter->prev;
+
+        struct list_head *now, *now_safe;
+        for(now = node; now != iter; now = now_safe) {
+            now_safe = now->next;
+
+            struct list_head* prev = now->prev;
+            struct list_head* next = now->next;
+
+            now->prev = next;
+            now->next = prev;
+        }
+
+        iter->prev->prev = node->next;
+        node->next = iter;
+        iter->prev = node;
+        node = iter;
     }
+
+    // element_t *elem;
+    // list_for_each_entry(elem, head, list) {
+    //     printf("l = %s\n", elem->value);
+    // }
 }
 
 /* Sort elements of queue in ascending order */
