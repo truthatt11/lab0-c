@@ -41,9 +41,16 @@ void q_free(struct list_head *l)
 element_t *create_element(char *s)
 {
     element_t *element = malloc(sizeof(element_t));
+    if (element == NULL) {
+        return NULL;
+    }
     INIT_LIST_HEAD(&element->list);
     int len = strlen(s);
     char *s_copy = malloc(len + 1);
+    if (s_copy == NULL) {
+        free(element);
+        return NULL;
+    }
     strncpy(s_copy, s, len);
     s_copy[len] = 0;
     element->value = s_copy;
@@ -55,6 +62,9 @@ element_t *create_element(char *s)
 bool q_insert_head(struct list_head *head, char *s)
 {
     element_t *element = create_element(s);
+    if (element == NULL) {
+        return false;
+    }
     list_add(&element->list, head);
 
     return true;
@@ -64,6 +74,9 @@ bool q_insert_head(struct list_head *head, char *s)
 bool q_insert_tail(struct list_head *head, char *s)
 {
     element_t *element = create_element(s);
+    if (element == NULL) {
+        return false;
+    }
     list_add_tail(&element->list, head);
 
     return true;
