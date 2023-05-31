@@ -176,10 +176,10 @@ bool q_delete_dup(struct list_head *head)
 
     list_for_each_entry_safe (now, next, head, list) {
         list_for_each_entry (dup_now, dup_element, list) {
-            printf("step 2. now: %s, dup: %s\n", now->value, dup_now->value);
+            // printf("step 2. now: %s, dup: %s\n", now->value, dup_now->value);
             if (strcmp(now->value, dup_now->value) == 0) {
                 if (dup_now->count > 1) {
-                    printf("del\n");
+                    // printf("del\n");
                     list_del(&now->list);
                     free(now->value);
                     free(now);
