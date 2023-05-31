@@ -92,6 +92,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     list_del(head->next);
     if (sp != NULL) {
         strncpy(sp, elem->value, bufsize - 1);
+        sp[bufsize-1] = 0;
     }
     return elem;
 }
@@ -103,6 +104,7 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     list_del(head->prev);
     if (sp != NULL) {
         strncpy(sp, elem->value, bufsize - 1);
+        sp[bufsize-1] = 0;
     }
     return elem;
 }
