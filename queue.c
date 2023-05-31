@@ -134,6 +134,12 @@ bool q_delete_mid(struct list_head *head)
     return true;
 }
 
+typedef struct {
+    char *value;
+    int count;
+    struct list_head list;
+} element_count_t;
+
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
@@ -142,25 +148,56 @@ bool q_delete_dup(struct list_head *head)
         return false;
     }
     element_t *now, *next;
-    element_t *dup_now;
+    element_count_t *dup_now;
     struct list_head *dup_element = q_new();
 
     list_for_each_entry_safe (now, next, head, list) {
-        bool is_duplicated = false;
+        element_count_t *is_duplicated = NULL;
         list_for_each_entry (dup_now, dup_element, list) {
             if (strcmp(now->value, dup_now->value) == 0) {
-                is_duplicated = true;
+                is_duplicated = dup_now;
                 break;
             }
         }
 
-        if (!is_duplicated) {
-            element_t *new_elem = create_element(now->value);
-            list_add(dup_element, &new_elem->list);
+        if (is_duplicated == NULL) {
+            element_count_t *new_elem = malloc(sizeof(element_count_t));
+            INIT_LIST_HEAD(&new_elem->list);
+            int len = strlen(now->value);
+            char *s_copy = malloc(len + 1);
+            strncpy(s_copy, now->value, len);
+            s_copy[len] = 0;
+            new_elem->value = s_copy;
+            new_elem->count = 1;
+
+            list_add(&new_elem->list, dup_element);
         } else {
-            list_del(&now->list);
+            is_duplicated->count += 1;
         }
     }
+
+    list_for_each_entry_safe (now, next, head, list) {
+        list_for_each_entry (dup_now, dup_element, list) {
+            printf("step 2. now: %s, dup: %s\n", now->value, dup_now->value);
+            if (strcmp(now->value, dup_now->value) == 0) {
+                if (dup_now->count > 1) {
+                    printf("del\n");
+                    list_del(&now->list);
+                    free(now->value);
+                    free(now);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    element_count_t *dup_now_safe;
+    list_for_each_entry_safe(dup_now, dup_now_safe, dup_element, list) {
+        free(dup_now->value);
+        free(dup_now);
+    }
+    free(dup_element);
 
     return true;
 }
@@ -297,7 +334,29 @@ void q_sort(struct list_head *head)
 int q_descend(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    char *great_string = NULL;
+    int len = 0;
+    for (struct list_head *list = head->prev; list != head; list=list->prev) {
+        element_t *elem = list_entry(list, element_t, list);
+        // printf("current: %s\n", elem->value);
+        if (great_string == NULL) {
+            great_string = elem->value;
+        } else {
+            if (strcmp(great_string, elem->value) > 0) {
+                // printf("break\n");
+                struct list_head *next = list->next;
+                list_del(list);
+                free(elem->value);
+                free(elem);
+                list = next;
+                continue;
+            } else {
+                great_string = elem->value;
+            }
+        }
+        ++len;
+    }
+    return len;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending order */
